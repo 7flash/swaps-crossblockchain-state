@@ -1,0 +1,31 @@
+{
+  "name": "swaps-crossblockchain-state",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/7flash/swaps-crossblockchain-state.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/7flash/swaps-crossblockchain-state/issues"
+  },
+  "homepage": "https://github.com/7flash/swaps-crossblockchain-state#readme",
+  "dependencies": {
+    "redis": "^2.8.0",
+    "web3": "1.0.0-beta.24",
+    "web3-stream": "0.0.2",
+    "web3-wallet": "^0.3.1"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "fakeredis": "^2.0.0",
+    "mocha": "^5.2.0",
+    "sinon": "^6.1.4"
+  }
+}
