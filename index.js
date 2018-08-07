@@ -15,18 +15,26 @@ const redisClient = redis.createClient(config.redis.options)
 
 const { swapName, reputationName, pointsIncrease, pointsDecrease, fromBlock } = config.ethbtc
 
-module.exports = () => {
+const processCreatedEvent = () => {
   (ethbtcReadableStreams.SwapCreated({ web3, contract, fromBlock }))
     .pipe(redisWritableStreams.SwapCreated({ redisClient, swapName }))
     .pipe(LogStream())
+}
 
+const processWithdrawnEvent = () => {
   (ethbtcReadableStreams.SwapWithdrawn({ web3, contract, fromBlock }))
     .pipe(redisWritableStreams.SwapWithdrawn({ redisClient, reputationName, pointsPerEvent: pointsIncrease }))
     .pipe(LogStream())
+}
 
+const processRefundedEvent = () => {
   (ethbtcReadableStreams.SwapRefunded({ web3, contract, fromBlock }))
     .pipe(redisWritableStreams.SwapRefunded({ redisClient, reputationName, pointsPerEvent: pointsDecrease }))
     .pipe(LogStream())
+}
 
-  // ...(eosbtcStream()).pipe(redisEosBtc())
+module.exports = () => {
+  processCreatedEvent()
+  processWithdrawnEvent()
+  processRefundedEvent()
 }
