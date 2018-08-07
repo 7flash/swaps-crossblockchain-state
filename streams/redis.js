@@ -49,27 +49,27 @@ class SwapReputation extends Writable {
   }
 }
 
-let SwapCreated = null
-let SwapWithdrawn = null
-let SwapRefunded = null
+let swapCreatedInstance = null
+let swapWithdrawnInstance = null
+let swapRefundedInstance = null
 
 module.exports = {
   SwapCreated: ({ redisClient, swapName }) => {
-    if (SwapCreated === null)
-      SwapCreated = new SwapCreated({ redisClient, swapName })
+    if (swapCreatedInstance === null)
+      swapCreatedInstance = new SwapCreated({ redisClient, swapName })
 
-    return SwapCreated
+    return swapCreatedInstance
   },
   SwapWithdrawn: ({ redisClient, reputationName, value }) => {
-    if (SwapWithdrawn === null)
-      SwapWithdrawn = new SwapReputation({ redisClient, reputationName, value, success: true })
+    if (swapWithdrawnInstance === null)
+      swapWithdrawnInstance = new SwapReputation({ redisClient, reputationName, value, success: true })
 
-    return SwapWithdrawn
+    return swapWithdrawnInstance
   },
   SwapRefunded: ({ redisClient, reputationName, value }) => {
-    if (SwapRefunded === null)
-      SwapRefunded = new SwapReputation({ redisClient, reputationName, value, success: false })
+    if (swapRefundedInstance === null)
+      swapRefundedInstance = new SwapReputation({ redisClient, reputationName, value, success: false })
 
-    return SwapRefunded
+    return swapRefundedInstance
   }
 }
