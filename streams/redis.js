@@ -44,12 +44,12 @@ class SwapReputation extends Duplex {
 
     if (this.isPositiveEvent === true) {
       const p1 =
-        new Promise(resolve => this.redisClient.INCRBY(`${this.reputationName}:${seller}`, this.pointsPerEvent, resolve))
-          .then(() => this.push({ participant: seller, points: this.pointsPerEvent }))
+        new Promise(resolve => this.redisClient.INCRBY(`${this.reputationName}:${seller}`, this.pointsPerEvent, () => resolve(seller)))
+          .then((participant) => this.push({ participant, points: this.pointsPerEvent }))
 
       const p2 =
-        new Promise(resolve => this.redisClient.INCRBY(`${this.reputationName}:${buyer}`, this.pointsPerEvent, resolve))
-          .then(() => this.push({ participant: buyer, points: this.pointsPerEvent }))
+        new Promise(resolve => this.redisClient.INCRBY(`${this.reputationName}:${buyer}`, this.pointsPerEvent, () => resolve(buyer)))
+          .then((participant) => this.push({ participant, points: this.pointsPerEvent }))
 
       Promise.all([p1, p2]).then(() => {
         callback()
