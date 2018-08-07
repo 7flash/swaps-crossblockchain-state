@@ -6,6 +6,7 @@ const abi = require('./EthToSmthSwaps.json')
 
 const ethbtcReadableStreams = require('./streams/ethbtc')
 const redisWritableStreams = require('./streams/redis')
+const LogStream = require('./streams/log')
 // const eosbtcStream = require('./eosbtc')
 
 const web3 = Web3Wallet.create(null, config.ethbtc.rpc)
@@ -17,12 +18,15 @@ const { swapName, reputationName, pointsIncrease, pointsDecrease, fromBlock } = 
 module.exports = () => {
   (ethbtcReadableStreams.SwapCreated({ web3, contract, fromBlock }))
     .pipe(redisWritableStreams.SwapCreated({ redisClient, swapName }))
+    .pipe(LogStream())
 
   (ethbtcReadableStreams.SwapWithdrawn({ web3, contract, fromBlock }))
     .pipe(redisWritableStreams.SwapWithdrawn({ redisClient, reputationName, pointsPerEvent: pointsIncrease }))
+    .pipe(LogStream())
 
   (ethbtcReadableStreams.SwapRefunded({ web3, contract, fromBlock }))
     .pipe(redisWritableStreams.SwapRefunded({ redisClient, reputationName, pointsPerEvent: pointsDecrease }))
+    .pipe(LogStream())
 
   // ...(eosbtcStream()).pipe(redisEosBtc())
 }
