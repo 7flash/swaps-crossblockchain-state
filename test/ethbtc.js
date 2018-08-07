@@ -4,7 +4,7 @@ const sinon = require("sinon")
 const spy = sinon.spy()
 const stub = sinon.stub(require('web3-stream'), 'Web3EventStream').value(spy)
 const web3 = sinon.stub()
-const contract = { Created: 'event1', Withdrawn: 'event2', Refunded: 'event3' }
+const contract = { CreateSwap: 'event1', Withdraw: 'event2', Refund: 'event3' }
 const fromBlock = 1
 
 const {
