@@ -1,4 +1,4 @@
-const { Writable, Duplex } = require("stream")
+const { Duplex } = require("stream")
 
 class SwapCreated extends Duplex {
   constructor({ redisClient, swapName }) {
@@ -55,7 +55,10 @@ class SwapReputation extends Duplex {
         callback()
       })
     } else {
-      this.redisClient.DECRBY(`${this.reputationName}:${buyer}`, this.pointsPerEvent, callback)
+      this.redisClient.DECRBY(`${this.reputationName}:${buyer}`, this.pointsPerEvent, () => {
+        this.push({ participant: buyer, points: this.pointsPerEvent })
+        callback()
+      })
     }
   }
 

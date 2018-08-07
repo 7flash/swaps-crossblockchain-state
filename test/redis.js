@@ -76,33 +76,32 @@ describe('Redis Writable Streams', () => {
   })
 
   describe('SwapRefunded', () => {
-    it('should decrease reputation of buyer', (done) => {
-      const redisClient = redis.createClient("third")
-
-      const event = { args: { buyer: '0x1', seller: '0x2' } }
-
-      const { args: { buyer, seller } } = event
-
-      const stream = SwapRefunded({ redisClient, reputationName, pointsPerEvent: 1 })
+    before((done) => {
+      redisClient = redis.createClient("third")
+      stream = SwapRefunded({ redisClient, reputationName, pointsPerEvent })
 
       stream.write(event, 'utf8', () => {
-        const check1 = new Promise((resolve) => {
-          redisClient.get(`${reputationName}:${buyer}`, (_, result) => {
-            expect(result).to.be.equal(-1)
-            resolve()
-          })
-        })
+        done()
+      })
+    })
 
-        const check2 = new Promise((resolve) => {
-          redisClient.get(`${reputationName}:${seller}`, (_, result) => {
-            expect(result).to.be.equal(null)
-            resolve()
-          })
-        })
+    it('should flow as a duplex stream', () => {
+      const log = stream.read()
 
-        Promise.all([check1, check2]).then(() => {
-          done()
-        })
+      expect(log).to.be.deep.equal({ participant: buyer, points: pointsPerEvent })
+    })
+
+    it('should decrease reputation of buyer', (done) => {
+      redisClient.get(`${reputationName}:${buyer}`, (_, result) => {
+        expect(result).to.be.equal(-(pointsPerEvent))
+        done()
+      })
+    })
+
+    it('should not touch the reputation of seller', (done) => {
+      redisClient.get(`${reputationName}:${seller}`, (_, result) => {
+        expect(result).to.be.equal(null)
+        done()
       })
     })
   })
