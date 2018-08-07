@@ -1,26 +1,26 @@
 const { Web3EventStream } = require('web3-stream')
 
-let SwapCreated = null
-let SwapWithdrawn = null
-let SwapRefunded = null
+let swapCreatedInstance = null
+let swapWithdrawnInstance = null
+let swapRefundedInstance = null
 
 module.exports = {
   SwapCreated: ({ web3, contract, fromBlock }) => {
-    if (SwapCreated === null)
-      SwapCreated = new Web3EventStream(web3, contract.Created, {}, { fromBlock })
+    if (swapCreatedInstance === null)
+      swapCreatedInstance = new Web3EventStream(web3, contract.Created, {}, { fromBlock })
 
-    return SwapCreated
+    return swapCreatedInstance
   },
   SwapWithdrawn: ({ web3, contract, fromBlock }) => {
-    if (SwapWithdrawn === null)
-      SwapWithdrawn = new Web3EventStream(web3, contract.Withdrawn, {}, { fromBlock })
+    if (swapWithdrawnInstance === null)
+      swapWithdrawnInstance = new Web3EventStream(web3, contract.Withdrawn, {}, { fromBlock })
 
-    return SwapWithdrawn
+    return swapWithdrawnInstance
   },
   SwapRefunded: ({ web3, contract, fromBlock }) => {
-    if (SwapRefunded === null)
-      SwapRefunded = new Web3EventStream(web3, contract.Refunded, {}, { fromBlock })
+    if (swapRefundedInstance === null)
+      swapRefundedInstance = new Web3EventStream(web3, contract.Refunded, {}, { fromBlock })
 
-    return SwapRefunded
+    return swapRefundedInstance
   }
 }
