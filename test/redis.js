@@ -14,6 +14,7 @@ describe('Redis Writable Streams', () => {
   const seller = '0x2'
   const value = '100'
   const event = { args: { buyer, seller, value } }
+  const pointsPerEvent = 2
 
   describe('SwapCreated', () => {
     const key = `${swapName}:0`
@@ -44,11 +45,19 @@ describe('Redis Writable Streams', () => {
   describe('SwapWithdrawn', () => {
     before((done) => {
       redisClient = redis.createClient("second")
-      stream = SwapWithdrawn({ redisClient, reputationName, pointsPerEvent: 2 })
+      stream = SwapWithdrawn({ redisClient, reputationName, pointsPerEvent })
 
       stream.write(event, 'utf8', () => {
         done()
       })
+    })
+
+    it('should flow as a duplex stream', () => {
+      const log1 = stream.read()
+      const log2 = stream.read()
+
+      expect(log1).to.be.deep.equal({ participant: seller, points: pointsPerEvent })
+      expect(log2).to.be.deep.equal({ participant: buyer, points: pointsPerEvent })
     })
 
     it('should increase reputation of buyer', (done) => {
