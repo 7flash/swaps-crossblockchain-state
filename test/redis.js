@@ -10,7 +10,10 @@ describe('Redis Writable Streams', () => {
   let redisClient
   let stream
 
-  const event = { args: { buyer: '0x1', seller: '0x2', value: '100' } }
+  const buyer = '0x1'
+  const seller = '0x2'
+  const value = '100'
+  const event = { args: { buyer, seller, value } }
 
   describe('SwapCreated', () => {
     const key = `${swapName}:0`
@@ -39,35 +42,26 @@ describe('Redis Writable Streams', () => {
   })
 
   describe('SwapWithdrawn', () => {
-    
-
-    it('should increase reputation of both participants', (done) => {
-      const redisClient = redis.createClient("second")
-
-      const event = { args: { buyer: '0x1', seller: '0x2' } }
-
-      const { args: { buyer, seller } } = event
-
-      const stream = SwapWithdrawn({ redisClient, reputationName, value: 2 })
+    before((done) => {
+      redisClient = redis.createClient("second")
+      stream = SwapWithdrawn({ redisClient, reputationName, pointsPerEvent: 2 })
 
       stream.write(event, 'utf8', () => {
-        const check1 = new Promise((resolve) => {
-          redisClient.get(`${reputationName}:${buyer}`, (_, result) => {
-            expect(result).to.be.equal(2)
-            resolve()
-          })
-        })
+        done()
+      })
+    })
 
-        const check2 = new Promise((resolve) => {
-          redisClient.get(`${reputationName}:${seller}`, (_, result) => {
-            expect(result).to.be.equal(2)
-            resolve()
-          })
-        })
+    it('should increase reputation of buyer', (done) => {
+      redisClient.get(`${reputationName}:${buyer}`, (_, result) => {
+        expect(result).to.be.equal(2)
+        done()
+      })
+    })
 
-        Promise.all([check1, check2]).then(() => {
-          done()
-        })
+    it('should increase reputation of seller', (done) => {
+      redisClient.get(`${reputationName}:${seller}`, (_, result) => {
+        expect(result).to.be.equal(2)
+        done()
       })
     })
   })
@@ -80,7 +74,7 @@ describe('Redis Writable Streams', () => {
 
       const { args: { buyer, seller } } = event
 
-      const stream = SwapRefunded({ redisClient, reputationName, value: 1 })
+      const stream = SwapRefunded({ redisClient, reputationName, pointsPerEvent: 1 })
 
       stream.write(event, 'utf8', () => {
         const check1 = new Promise((resolve) => {

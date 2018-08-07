@@ -12,17 +12,17 @@ const web3 = Web3Wallet.create(null, config.ethbtc.rpc)
 const contract = web3.eth.loadContract(abi, config.ethbtc.contract);
 const redisClient = redis.createClient(config.redis.options)
 
-const { swapName, reputationName, successValue, failureValue, fromBlock } = config.ethbtc
+const { swapName, reputationName, pointsIncrease, pointsDecrease, fromBlock } = config.ethbtc
 
 module.exports = () => {
   (ethbtcReadableStreams.SwapCreated({ web3, contract, fromBlock }))
     .pipe(redisWritableStreams.SwapCreated({ redisClient, swapName }))
 
   (ethbtcReadableStreams.SwapWithdrawn({ web3, contract, fromBlock }))
-    .pipe(redisWritableStreams.SwapWithdrawn({ redisClient, reputationName, value: successValue }))
+    .pipe(redisWritableStreams.SwapWithdrawn({ redisClient, reputationName, pointsPerEvent: pointsIncrease }))
 
   (ethbtcReadableStreams.SwapRefunded({ web3, contract, fromBlock }))
-    .pipe(redisWritableStreams.SwapRefunded({ redisClient, reputationName, value: failureValue }))
+    .pipe(redisWritableStreams.SwapRefunded({ redisClient, reputationName, pointsPerEvent: pointsDecrease }))
 
   // ...(eosbtcStream()).pipe(redisEosBtc())
 }

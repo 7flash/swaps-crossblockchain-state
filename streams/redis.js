@@ -27,14 +27,14 @@ class SwapCreated extends Duplex {
   _read() {}
 }
 
-class SwapReputation extends Writable {
-  constructor({ redisClient, reputationName, value, success }) {
+class SwapReputation extends Duplex {
+  constructor({ redisClient, reputationName, pointsPerEvent, isPositiveEvent }) {
     super({ objectMode: true })
 
     this.redisClient = redisClient
     this.reputationName = reputationName
-    this.value = value
-    this.success = success
+    this.pointsPerEvent = pointsPerEvent
+    this.isPositiveEvent = isPositiveEvent
   }
 
   _write(chunk, encoding, callback) {
@@ -42,15 +42,19 @@ class SwapReputation extends Writable {
 
     const { seller, buyer } = event
 
-    if (this.success === true) {
-      const p1 = new Promise(resolve => this.redisClient.INCRBY(`${this.reputationName}:${seller}`, this.value, resolve))
-      const p2 = new Promise(resolve => this.redisClient.INCRBY(`${this.reputationName}:${buyer}`, this.value, resolve))
+    if (this.isPositiveEvent === true) {
+      const p1 = new Promise(resolve => this.redisClient.INCRBY(`${this.reputationName}:${seller}`, this.pointsPerEvent, resolve))
+      const p2 = new Promise(resolve => this.redisClient.INCRBY(`${this.reputationName}:${buyer}`, this.pointsPerEvent, resolve))
 
-      Promise.all([p1, p2]).then(() => callback() )
+      Promise.all([p1, p2]).then(() => {
+        callback()
+      })
     } else {
-      this.redisClient.DECRBY(`${this.reputationName}:${buyer}`, this.value, callback)
+      this.redisClient.DECRBY(`${this.reputationName}:${buyer}`, this.pointsPerEvent, callback)
     }
   }
+
+  _read() {}
 }
 
 let swapCreatedInstance = null
@@ -64,15 +68,15 @@ module.exports = {
 
     return swapCreatedInstance
   },
-  SwapWithdrawn: ({ redisClient, reputationName, value }) => {
+  SwapWithdrawn: ({ redisClient, reputationName, pointsPerEvent }) => {
     if (swapWithdrawnInstance === null)
-      swapWithdrawnInstance = new SwapReputation({ redisClient, reputationName, value, success: true })
+      swapWithdrawnInstance = new SwapReputation({ redisClient, reputationName, pointsPerEvent, isPositiveEvent: true })
 
     return swapWithdrawnInstance
   },
-  SwapRefunded: ({ redisClient, reputationName, value }) => {
+  SwapRefunded: ({ redisClient, reputationName, pointsPerEvent }) => {
     if (swapRefundedInstance === null)
-      swapRefundedInstance = new SwapReputation({ redisClient, reputationName, value, success: false })
+      swapRefundedInstance = new SwapReputation({ redisClient, reputationName, pointsPerEvent, isPositiveEvent: false })
 
     return swapRefundedInstance
   }
