@@ -6,9 +6,8 @@ class LogStream extends Writable {
   }
 
   _write(chunk, encoding, callback) {
-    const event = { ...chunk.args }
-
-    console.log(event)
+    console.log(chunk)
+    callback()
   }
 }
 
