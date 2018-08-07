@@ -2,8 +2,9 @@
   "name": "swaps-crossblockchain-state",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "start.js",
   "scripts": {
+    "start": "node start.js"
     "test": "mocha test"
   },
   "repository": {
