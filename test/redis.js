@@ -7,24 +7,40 @@ const swapName = 'someBlockchains'
 const reputationName = 'someReputation'
 
 describe('Redis Writable Streams', () => {
+  let redisClient
+  let stream
+
+  const event = { args: { buyer: '0x1', seller: '0x2', value: '100' } }
+
   describe('SwapCreated', () => {
-    it('should store created swap in collection', (done) => {
-      const redisClient = redis.createClient("first")
+    const key = `${swapName}:0`
 
-      const event = { args: { buyer: '0x1', seller: '0x2', value: '100' } }
-
-      const stream = SwapCreated({ redisClient, swapName })
+    before((done) => {
+      redisClient = redis.createClient("first")
+      stream = SwapCreated({ redisClient, swapName })
 
       stream.write(event, 'utf8', () => {
-        redisClient.hgetall(`${swapName}:0`, (_, result) => {
-          expect(result).to.be.deep.equal(event.args)
-          done()
-        })
+        done()
+      })
+    })
+
+    it('should flow as a duplex stream', () => {
+      const log = stream.read()
+
+      expect(log).to.be.deep.equal({ key, event: event.args })
+    })
+
+    it('should store created swap in collection', (done) => {
+      redisClient.hgetall(key, (_, result) => {
+        expect(result).to.be.deep.equal(event.args)
+        done()
       })
     })
   })
 
   describe('SwapWithdrawn', () => {
+    
+
     it('should increase reputation of both participants', (done) => {
       const redisClient = redis.createClient("second")
 

@@ -1,6 +1,6 @@
-const { Writable } = require("stream")
+const { Writable, Duplex } = require("stream")
 
-class SwapCreated extends Writable {
+class SwapCreated extends Duplex {
   constructor({ redisClient, swapName }) {
     super({ objectMode: true })
 
@@ -20,7 +20,11 @@ class SwapCreated extends Writable {
     const key = `${this.swapName}:${this.collectionIndex}`
     this.collectionIndex++
     this.redisClient.hmset(key, event, callback)
+
+    this.push({ key, event })
   }
+
+  _read() {}
 }
 
 class SwapReputation extends Writable {
