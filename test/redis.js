@@ -13,12 +13,12 @@ describe('Redis Writable Streams', () => {
   const buyer = '0x1'
   const seller = '0x2'
   const value = '100'
-  const event = { args: { buyer, seller, value } }
+  const createdAt = '555'
+  const secretHash = 'xff'
+  const event = { args: { buyer, seller, value, createdAt, secretHash } }
   const pointsPerEvent = 2
 
   describe('SwapCreated', () => {
-    const key = `${swapName}:0`
-
     before((done) => {
       redisClient = redis.createClient("first")
       stream = SwapCreated({ redisClient, swapName })
@@ -29,14 +29,31 @@ describe('Redis Writable Streams', () => {
     })
 
     it('should flow as a duplex stream', () => {
+      const key = `${swapName}:${event.args.secretHash}`
+
       const log = stream.read()
 
       expect(log).to.be.deep.equal({ key, event: event.args })
     })
 
     it('should store created swap in collection', (done) => {
-      redisClient.hgetall(key, (_, result) => {
-        expect(result).to.be.deep.equal(event.args)
+      redisClient.lrange(swapName, 0, 0, (_, secretHashes) => {
+        expect(secretHashes[0]).to.be.equal(event.args.secretHash)
+
+        redisClient.hgetall(`${swapName}:${event.args.secretHash}`, (_, result) => {
+          expect(result).to.be.deep.equal(event.args)
+
+          done()
+        })
+      })
+    })
+
+    it('should ignore swap with duplicated secretHash', (done) => {
+      stream.write(event, 'utf8', () => {
+        const log = stream.read()
+
+        expect(log).to.be.equal(null)
+
         done()
       })
     })

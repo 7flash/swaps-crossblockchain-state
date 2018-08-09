@@ -6,7 +6,6 @@ class SwapCreated extends Duplex {
 
     this.redisClient = redisClient
     this.swapName = swapName
-    this.collectionIndex = 0
   }
 
   _write(chunk, encoding, callback) {
@@ -17,11 +16,20 @@ class SwapCreated extends Duplex {
         event[key] = event[key].toString()
     }
 
-    const key = `${this.swapName}:${this.collectionIndex}`
-    this.collectionIndex++
-    this.redisClient.hmset(key, event, callback)
+    const key = `${this.swapName}:${event.secretHash}`
 
-    this.push({ key, event })
+    this.redisClient.hget(key, 'secretHash', (_, existingEvent) => {
+      if (existingEvent === null) {
+        this.redisClient.rpush(this.swapName, event.secretHash, () => {
+          this.redisClient.hmset(key, event, () => {
+            this.push({ key, event })
+            callback()
+          })
+        })
+      } else {
+        callback()
+      }
+    })
   }
 
   _read() {}
@@ -69,6 +77,8 @@ let swapCreatedInstance = null
 let swapWithdrawnInstance = null
 let swapRefundedInstance = null
 
+let bitcoinTransactionInstance = null
+
 module.exports = {
   SwapCreated: ({ redisClient, swapName }) => {
     if (swapCreatedInstance === null)
@@ -87,5 +97,12 @@ module.exports = {
       swapRefundedInstance = new SwapReputation({ redisClient, reputationName, pointsPerEvent, isPositiveEvent: false })
 
     return swapRefundedInstance
+  },
+
+  BitcoinTransaction: ({ redisClient, swapName }) => {
+    if (bitcoinTransactionInstance === null)
+      bitcoinTransactionInstance = new BitcoinTransaction({ redisClient, swapName })
+
+    return bitcoinTransactionInstance
   }
 }
