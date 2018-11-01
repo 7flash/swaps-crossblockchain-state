@@ -8,6 +8,9 @@ module.exports = {
     pointsDecrease: -1,
     fromBlock: 2766266
   },
+  btceth: {
+
+  },
   redis: {
     options: {}
   }

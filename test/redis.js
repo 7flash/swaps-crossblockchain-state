@@ -1,7 +1,7 @@
 const expect = require("chai").expect
 const redis = require("fakeredis")
 
-const { SwapCreated, SwapWithdrawn, SwapRefunded } = require('../streams/redis')
+const { SwapCreated, SwapWithdrawn, SwapRefunded, BitcoinTransaction } = require('../streams/redis')
 
 const swapName = 'someBlockchains'
 const reputationName = 'someReputation'
@@ -119,6 +119,78 @@ describe('Redis Writable Streams', () => {
       redisClient.get(`${reputationName}:${seller}`, (_, result) => {
         expect(result).to.be.equal(null)
         done()
+      })
+    })
+  })
+
+  const fundingTransaction = {
+    type: "funding",
+    transaction: {
+      secretHash: 'xff',
+      status: 'funded',
+      startTime: '1',
+      buyerFee: '1',
+      value: '1',
+      buyerAddress: '1a',
+      sellerAddress: '1b',
+      fundingTxId: '1c'
+    }
+  }
+  const withdrawalTransaction = {
+    type: "withdrawal",
+    transaction: {
+      secretHash: 'xff',
+      withdrawalTxId: '1d',
+      status: 'withdrawn',
+      endTime: '2',
+      sellerFee: '2'
+    }
+  }
+  const refundTransaction = {
+    type: "refund",
+    transaction: {
+      secretHash: 'hff',
+      refundTxId: '1e',
+      status: 'refund',
+      endTime: '2',
+      sellerFee: '2'
+    }
+  }
+  const bitcoinSwapName = 'btceth'
+  describe('BitcoinTransaction', () => {
+    before(() => {
+      redisClient = redis.createClient("fourth")
+      stream = BitcoinTransaction({ redisClient, swapName: bitcoinSwapName })
+    })
+
+    it('store data from funding transaction in collection indexed by secretHash', (done) => {
+      stream.write(fundingTransaction, 'utf8', () => {
+        redisClient.lrange(bitcoinSwapName, 0, 0, (_, secretHashes) => {
+          redisClient.hgetall(`${bitcoinSwapName}:${secretHashes[0]}`, (_, result) => {
+            expect(result).to.be.deep.equal(fundingTransaction.transaction)
+            done()
+          })
+        })
+      })
+    })
+
+    it('update data when withdrawal transaction confirms', (done) => {
+      stream.write(withdrawalTransaction, 'utf8', () => {
+        redisClient.lrange(bitcoinSwapName, 0, 0, (_, secretHashes) => {
+          redisClient.hgetall(`${bitcoinSwapName}:${secretHashes[0]}`, (_, result) => {
+            expect(result).to.be.deep.equal({ ...fundingTransaction.transaction, ...withdrawalTransaction.transaction })
+            done()
+          })
+        })
+      })
+    })
+
+    it('should ignore transaction with repeating secretHash', (done) => {
+      stream.write(fundingTransaction, 'utf8', () => {
+        redisClient.lrange(bitcoinSwapName, 1, 1, (_, result) => {
+          expect(result).to.be.deep.equal([])
+          done()
+        })
       })
     })
   })

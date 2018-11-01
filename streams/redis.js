@@ -1,5 +1,50 @@
 const { Duplex } = require("stream")
 
+class BitcoinTransaction extends Duplex {
+  constructor({ redisClient, swapName }) {
+    super({ objectMode: true })
+
+    this.redisClient = redisClient
+    this.swapName = swapName
+  }
+
+  _write(data, encoding, callback) {
+    const { type, transaction } = data
+    const { secretHash } = transaction
+    const key = `${this.swapName}:${secretHash}`
+
+    if (type === 'funding') {
+      this.redisClient.hget(key, 'secretHash', (_, existingTransaction) => {
+        if (existingTransaction === null) {
+          this.redisClient.rpush(this.swapName, secretHash, (_, result) => {
+            this.redisClient.hmset(key, transaction, (_, result) => {
+              this.push({ key, transaction })
+              callback()
+            })
+          })
+        } else {
+          callback()
+        }
+      })
+    } else {
+      if (type === 'withdrawal') {
+        this.redisClient.hget(key, 'secretHash', (_, existingTransaction) => {
+          if (existingTransaction !== null) {
+            this.redisClient.hmset(key, transaction, (_, result) => {
+              this.push({ key, transaction })
+              callback()
+            })
+          }
+        })
+      } else {
+        callback()
+      }
+    }
+  }
+
+  _read() {}
+}
+
 class SwapCreated extends Duplex {
   constructor({ redisClient, swapName }) {
     super({ objectMode: true })
@@ -8,8 +53,8 @@ class SwapCreated extends Duplex {
     this.swapName = swapName
   }
 
-  _write(chunk, encoding, callback) {
-    const event = { ...chunk.args }
+  _write(data, encoding, callback) {
+    const event = { ...data.args }
 
     for (let key in event) {
       if (typeof event[key].toString === 'function')
@@ -45,8 +90,8 @@ class SwapReputation extends Duplex {
     this.isPositiveEvent = isPositiveEvent
   }
 
-  _write(chunk, encoding, callback) {
-    const event = { ...chunk.args }
+  _write(data, encoding, callback) {
+    const event = { ...data.args }
 
     const { seller, buyer } = event
 
