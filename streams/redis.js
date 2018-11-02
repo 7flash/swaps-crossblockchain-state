@@ -10,9 +10,6 @@ const parseEvent = (data) => {
       event[key] = event[key].toString()
   }
 
-  if (!event.secretHash) {
-    event.secretHash = crypto.randomBytes(32).toString('hex')
-  }
   if (!event.buyer) {
     event.buyer = event._buyer
   }
@@ -109,7 +106,7 @@ class SwapWithdrawn extends Duplex {
 }
 
 class SwapCreated extends Duplex {
-  constructor({ redisClient, swapName }) {
+  constructor({ redisClient, swapName, fetchSwapData }) {
     super({ objectMode: true })
 
     this.redisClient = redisClient
@@ -121,6 +118,8 @@ class SwapCreated extends Duplex {
 
     this.saveEvent = this.saveEvent.bind(this)
     this.updateIndex = this.updateIndex.bind(this)
+
+    this.fetchSwapData = fetchSwapData
   }
 
   saveEvent(event) {
@@ -145,7 +144,13 @@ class SwapCreated extends Duplex {
         event[key] = event[key].toString()
     }
 
-    this.updateIndex(event).then(() => {
+    this.fetchSwapData(event).then(({ value, secretHash }) => {
+      event.value = value
+      event.secretHash = secretHash
+    }).then(() => {
+      return this.updateIndex(event)
+    })
+    .then(() => {
       return this.saveEvent(event)
     }).then(() => {
       this.push({ event })
@@ -164,9 +169,9 @@ let swapWithdrawnInstance = null
 let swapRefundedInstance = null
 
 module.exports = {
-  SwapCreated: ({ redisClient, swapName }) => {
+  SwapCreated: ({ redisClient, swapName, fetchSwapData }) => {
     if (swapCreatedInstance === null)
-      swapCreatedInstance = new SwapCreated({ redisClient, swapName })
+      swapCreatedInstance = new SwapCreated({ redisClient, swapName, fetchSwapData })
 
     return swapCreatedInstance
   },

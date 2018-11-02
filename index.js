@@ -15,9 +15,20 @@ const redisClient = redis.createClient(config.redis.options)
 
 const { swapName, reputationName, pointsIncrease, pointsDecrease, fromBlock } = config.ethbtc
 
+const fetchSwapData = (event) => {
+  const { buyer, seller } = event
+
+  return contract.swaps(seller, buyer).then((result) => {
+    const secretHash = result[0].toString()
+    const value = result[3].toString()
+
+    return { value, secretHash }
+  })
+}
+
 const processCreatedEvent = () => {
   (ethbtcReadableStreams.SwapCreated({ web3, contract, fromBlock }))
-    .pipe(redisWritableStreams.SwapCreated({ redisClient, swapName }))
+    .pipe(redisWritableStreams.SwapCreated({ redisClient, swapName, fetchSwapData }))
     .pipe(LogStream())
 }
 

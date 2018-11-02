@@ -18,10 +18,13 @@ describe('Redis Writable Streams', () => {
   const event = { args: { buyer, seller, value, createdAt, secretHash } }
   const reputationMultiplier = 2
 
+  let expectedEvent = { args: { ...event.args, value: "200" } }
+  const fetchSwapData = (event) => Promise.resolve({ value: "200", secretHash: secretHash })
+
   describe('SwapCreated', () => {
     before((done) => {
       redisClient = redis.createClient("first")
-      stream = SwapCreated({ redisClient, swapName })
+      stream = SwapCreated({ redisClient, swapName, fetchSwapData })
 
       stream.write(event, 'utf8', () => {
         done()
@@ -31,7 +34,7 @@ describe('Redis Writable Streams', () => {
     it('should flow as a duplex stream', () => {
       const log = stream.read()
 
-      expect(log).to.be.deep.equal({ event: event.args })
+      expect(log).to.be.deep.equal({ event: expectedEvent.args })
     })
 
     it('should store created swap in collection', (done) => {
@@ -39,7 +42,7 @@ describe('Redis Writable Streams', () => {
         expect(secretHashes[0]).to.be.equal(event.args.secretHash)
 
         redisClient.hgetall(`${swapName}:${event.args.secretHash}:deposit`, (_, result) => {
-          expect(result).to.be.deep.equal(event.args)
+          expect(result).to.be.deep.equal(expectedEvent.args)
 
           done()
         })
