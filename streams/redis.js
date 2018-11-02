@@ -127,6 +127,9 @@ class SwapCreated extends Duplex {
   }
 
   updateIndex(event) {
+    if (!event.secretHash)
+      return Promise.reject('swap has no secretHash')
+
     return this.hget(`${this.swapName}:${event.secretHash}:deposit`, 'secretHash').then((existingHash) => {
       if (existingHash !== null)
         throw new Error(`swap with hash equal to ${existingHash} already exists`)
@@ -138,11 +141,6 @@ class SwapCreated extends Duplex {
 
   _write(data, encoding, callback) {
     const event = parseEvent(data)
-
-    for (let key in event) {
-      if (typeof event[key].toString === 'function')
-        event[key] = event[key].toString()
-    }
 
     this.fetchSwapData(event).then(({ value, secretHash }) => {
       event.value = value
