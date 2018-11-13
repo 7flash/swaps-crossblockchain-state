@@ -18,6 +18,9 @@
   },
   "homepage": "https://github.com/7flash/swaps-crossblockchain-state#readme",
   "dependencies": {
+    "bitcoinjs-lib": "^3.3.2",
+    "bitcoind-rpc": "^0.7.2",
+    "blockchain.info": "^2.12.1",
     "crypto": "^1.0.1",
     "redis": "^2.8.0",
     "web3": "1.0.0-beta.24",
