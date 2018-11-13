@@ -11,12 +11,12 @@ const {
   SwapCreated,
   SwapWithdrawn,
   SwapRefunded
-} = require('../streams/ethbtc')
+} = require('../blockchains/ethereum')
 
-describe('ETH <=> BTC', () => {
+describe('Ethereum stream', () => {
   describe('SwapCreated', () => {
     it('should instantiate readable stream', () => {
-      const stream = SwapCreated({ web3, contract, fromBlock })
+      const stream = new SwapCreated(web3, contract.CreateSwap, fromBlock)
 
       expect(spy.calledWithNew()).to.be.true
       expect(spy.calledWithExactly(web3, 'event1', {}, { fromBlock })).to.be.true
@@ -25,7 +25,7 @@ describe('ETH <=> BTC', () => {
 
   describe('SwapWithdrawn', () => {
     it('should instantiate readable stream', () => {
-      const stream = SwapWithdrawn({ web3, contract, fromBlock })
+      const stream = new SwapWithdrawn(web3, contract.Withdraw, fromBlock)
 
       expect(spy.calledWithNew()).to.be.true
       expect(spy.calledWithExactly(web3, 'event2', {}, { fromBlock })).to.be.true
@@ -34,7 +34,7 @@ describe('ETH <=> BTC', () => {
 
   describe('SwapRefunded', () => {
     it('should instantiate readable stream', () => {
-      const stream = SwapRefunded({ web3, contract, fromBlock })
+      const stream = new SwapRefunded(web3, contract.Refund, fromBlock)
 
       expect(spy.calledWithNew()).to.be.true
       expect(spy.calledWithExactly(web3, 'event3', {}, { fromBlock })).to.be.true

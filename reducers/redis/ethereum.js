@@ -162,27 +162,8 @@ class SwapCreated extends Duplex {
   _read() {}
 }
 
-let swapCreatedInstance = null
-let swapWithdrawnInstance = null
-let swapRefundedInstance = null
-
 module.exports = {
-  SwapCreated: ({ redisClient, swapName, fetchSwapData }) => {
-    if (swapCreatedInstance === null)
-      swapCreatedInstance = new SwapCreated({ redisClient, swapName, fetchSwapData })
-
-    return swapCreatedInstance
-  },
-  SwapWithdrawn: ({ redisClient, swapName, reputationName, reputationMultiplier }) => {
-    if (swapWithdrawnInstance === null)
-      swapWithdrawnInstance = new SwapWithdrawn({ redisClient, swapName, reputationName, reputationMultiplier })
-
-    return swapWithdrawnInstance
-  },
-  SwapRefunded: ({ redisClient, swapName, reputationName, reputationMultiplier }) => {
-    if (swapRefundedInstance === null)
-      swapRefundedInstance = new SwapRefunded({ redisClient, swapName, reputationName, reputationMultiplier })
-
-    return swapRefundedInstance
-  }
+  SwapCreated,
+  SwapWithdrawn,
+  SwapRefunded
 }

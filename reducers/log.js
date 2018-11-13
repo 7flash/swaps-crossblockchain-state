@@ -11,6 +11,4 @@ class LogStream extends Writable {
   }
 }
 
-module.exports = () => {
-  return new LogStream()
-}
+module.exports = LogStream
