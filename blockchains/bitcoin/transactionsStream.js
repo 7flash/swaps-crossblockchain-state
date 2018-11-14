@@ -18,11 +18,16 @@ class TransactionsStream extends Readable {
     let latestBlock = await this.blockExplorer.getLatestBlock()
 
     while (true) {
-      await this.loadTransactions(currentBlock)
+      try {
+        await this.loadTransactions(currentBlock)
 
-      currentBlock++
-      if (currentBlock > latestBlock) {
-        await this.waitForBlock(currentBlock)
+        currentBlock++
+        if (currentBlock > latestBlock) {
+          await this.waitForBlock(currentBlock)
+        }
+      } catch (e) {
+        console.log('service is unavailable, wait for 60 seconds')
+        await sleep(60000)
       }
     }
   }
