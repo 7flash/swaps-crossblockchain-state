@@ -20,7 +20,7 @@ const fetchSwapData = (event) => {
   const { buyer, seller } = event
 
   return contract.swaps(seller, buyer).then((result) => {
-    const secretHash = result[0].toString()
+    const secretHash = result[1].toString()
     const value = result[3].toString()
 
     return { value, secretHash }
