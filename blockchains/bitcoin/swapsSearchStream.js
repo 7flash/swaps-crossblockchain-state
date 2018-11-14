@@ -13,9 +13,10 @@ class SwapsSearchStream extends Transform {
     const withdrawTx = tx.hash
     const fundingAddress = tx.inputs[0].prev_out.addr
     const scriptHex = tx.inputs[0].script
+    const value = tx.inputs[0].prev_out.value
     const withdrawFee = this.calculateFee(tx)
 
-    return { withdrawTx, withdrawFee, fundingAddress, scriptHex }
+    return { withdrawTx, withdrawFee, fundingAddress, scriptHex, value }
   }
 
   calculateFee(tx) {
@@ -60,7 +61,7 @@ class SwapsSearchStream extends Transform {
 
   _transform(data, encoding, callback) {
     try {
-      const { withdrawTx, withdrawFee, fundingAddress, scriptHex } = this.parseTransaction(data)
+      const { withdrawTx, withdrawFee, fundingAddress, scriptHex, value } = this.parseTransaction(data)
       const { buyer, seller, secretHash, secret, timeLock } = this.parseScript(scriptHex)
 
       const swap = {
@@ -72,6 +73,7 @@ class SwapsSearchStream extends Transform {
         withdrawTx,
         fundingAddress,
         withdrawFee,
+        value
       }
 
       this.push(swap)

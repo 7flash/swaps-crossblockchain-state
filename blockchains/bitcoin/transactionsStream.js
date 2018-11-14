@@ -34,6 +34,8 @@ class TransactionsStream extends Readable {
     for (const transaction of transactions) {
       this.push(transaction)
     }
+
+    console.log(`block ${blockNumber} done`)
   }
 
   async waitForBlock(blockNumber) {

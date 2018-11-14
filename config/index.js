@@ -6,13 +6,13 @@ module.exports = {
     reputationName: 'rating',
     pointsIncrease: 1,
     pointsDecrease: -1,
-    fromBlock: 2766266
+    fromBlock: 3200000
   },
   redis: {
     options: {}
   },
   bitcoin: {
-    startBlock: 1,
+    startBlock: 1442554,
     blockIntervalInSeconds: 600,
     swapName: 'bitcoin',
     reputationName: 'rating',
