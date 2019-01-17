@@ -207,7 +207,7 @@
     "type": "function"
   },
   {
-    "constant": false,
+    "constant": true,
     "inputs": [
       {
         "name": "_ownerAddress",
@@ -222,7 +222,7 @@
       }
     ],
     "payable": false,
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -311,6 +311,11 @@
       },
       {
         "indexed": false,
+        "name": "_secretHash",
+        "type": "bytes20"
+      },
+      {
+        "indexed": false,
         "name": "withdrawnAt",
         "type": "uint256"
       }
@@ -347,6 +352,11 @@
         "indexed": false,
         "name": "_seller",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "_secretHash",
+        "type": "bytes20"
       }
     ],
     "name": "Refund",

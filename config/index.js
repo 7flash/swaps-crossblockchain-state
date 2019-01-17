@@ -1,12 +1,12 @@
 module.exports = {
   ethereum: {
     rpc: 'https://rinkeby.infura.io/',
-    contract: '0x7C8F2b4D30A98A9Abcdeac3cf49d51f92a6dd81d',
+    contract: '0x5937f7cDa3670A6fA111Ae83Ab4A39Cfb5b89EC1',
     swapName: 'ethbtc',
     reputationName: 'rating',
     pointsIncrease: 1,
     pointsDecrease: -1,
-    fromBlock: 3511487
+    fromBlock: 3706748
   },
   redis: {
     options: {}
