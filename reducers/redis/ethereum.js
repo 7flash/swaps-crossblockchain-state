@@ -64,9 +64,9 @@ class SwapRefunded extends Duplex {
     try {
       await this.save(data)
       this.push({ data })
+      callback()
     } catch (error) {
       this.push({ error })
-    } finally {
       callback()
     }
   }
@@ -106,9 +106,9 @@ class SwapWithdrawn extends Duplex {
     try {
       await this.save(data)
       this.push({ data })
+      callback()
     } catch (error) {
       this.push({ error })
-    } finally {
       callback()
     }
   }
@@ -146,9 +146,9 @@ class SwapCreated extends Duplex {
     try {
       await this.save(data)
       this.push({ data })
+      callback()
     } catch (error) {
       this.push({ error })
-    } finally {
       callback()
     }
   }
