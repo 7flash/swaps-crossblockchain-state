@@ -16,20 +16,9 @@ const redisClient = redis.createClient(config.redis.options)
 
 const { swapName, reputationName, pointsIncrease, pointsDecrease, fromBlock } = config.ethereum
 
-const fetchSwapData = (event) => {
-  const { buyer, seller } = event
-
-  return contract.swaps(seller, buyer).then((result) => {
-    const secretHash = result[1].toString()
-    const value = result[3].toString()
-
-    return { value, secretHash }
-  })
-}
-
 const processCreatedEvent = (event) => {
   (new ethereumReadableStreams.SwapCreated(web3, CreateSwap, fromBlock))
-    .pipe(new redisWritableStreams.SwapCreated({ redisClient, swapName, fetchSwapData }))
+    .pipe(new redisWritableStreams.SwapCreated({ redisClient, swapName }))
     .pipe(new LogStream())
 }
 

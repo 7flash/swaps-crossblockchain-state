@@ -10,12 +10,10 @@ const parseEvent = (data) => {
       event[key] = event[key].toString()
   }
 
-  if (!event.buyer) {
-    event.buyer = event._buyer
-  }
-  if (!event.seller) {
-    event.seller = event._seller
-  }
+  event.buyer = event.buyer || event._buyer
+  event.seller = event.seller || event._seller
+  event.secretHash = event.secretHash || event._secretHash
+  event.value = event.value || event._value
 
   return event
 }
@@ -106,7 +104,7 @@ class SwapWithdrawn extends Duplex {
 }
 
 class SwapCreated extends Duplex {
-  constructor({ redisClient, swapName, fetchSwapData }) {
+  constructor({ redisClient, swapName }) {
     super({ objectMode: true })
 
     this.redisClient = redisClient
@@ -118,8 +116,6 @@ class SwapCreated extends Duplex {
 
     this.saveEvent = this.saveEvent.bind(this)
     this.updateIndex = this.updateIndex.bind(this)
-
-    this.fetchSwapData = fetchSwapData
   }
 
   saveEvent(event) {
@@ -142,13 +138,7 @@ class SwapCreated extends Duplex {
   _write(data, encoding, callback) {
     const event = parseEvent(data)
 
-    this.fetchSwapData(event).then(({ value, secretHash }) => {
-      event.value = value
-      event.secretHash = secretHash
-    }).then(() => {
-      return this.updateIndex(event)
-    })
-    .then(() => {
+    this.updateIndex(event).then(() => {
       return this.saveEvent(event)
     }).then(() => {
       this.push({ event })
