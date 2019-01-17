@@ -56,16 +56,16 @@ describe('Redis Writable Streams', () => {
     const value = '100'
     const createdAt = '555'
     const secretHash = 'xff'
-    const event = { args: { buyer, seller, value, createdAt, secretHash } }
+    const transactionHash = 'zzv'
+    const event = { args: { _buyer: buyer, _seller: seller, _value: value, createdAt: createdAt, _secretHash: secretHash }, transactionHash }
     const reputationMultiplier = 2
 
-    let expectedEvent = { args: { ...event.args, value: "200" } }
-    const fetchSwapData = (event) => Promise.resolve({ value: "200", secretHash: secretHash })
+    let expectedData = { buyer, seller, value, createdAt, secretHash, value: "100", transactionHash }
 
     describe('SwapCreated', () => {
       before((done) => {
         redisClient = redis.createClient("first")
-        stream = new SwapCreated({ redisClient, swapName, fetchSwapData })
+        stream = new SwapCreated({ redisClient, swapName })
 
         stream.write(event, 'utf8', () => {
           done()
@@ -75,15 +75,15 @@ describe('Redis Writable Streams', () => {
       it('should flow as a duplex stream', () => {
         const log = stream.read()
 
-        expect(log).to.be.deep.equal({ event: expectedEvent.args })
+        expect(log).to.be.deep.equal({ data: expectedData })
       })
 
       it('should store created swap in collection', (done) => {
         redisClient.lrange(swapName, 0, 0, (_, secretHashes) => {
-          expect(secretHashes[0]).to.be.equal(event.args.secretHash)
+          expect(secretHashes[0]).to.be.equal(event.args._secretHash)
 
-          redisClient.hgetall(`${swapName}:${event.args.secretHash}:deposit`, (_, result) => {
-            expect(result).to.be.deep.equal(expectedEvent.args)
+          redisClient.hgetall(`${swapName}:${event.args._secretHash}:deposit`, (_, result) => {
+            expect(result).to.be.deep.equal({ ...expectedData })
 
             done()
           })
@@ -114,7 +114,7 @@ describe('Redis Writable Streams', () => {
       it('should flow as a duplex stream', () => {
         const log = stream.read()
 
-        expect(log).to.be.deep.equal({ event: event.args })
+        expect(log).to.be.deep.equal({ data: expectedData })
       })
 
       it('should increase reputation of buyer', (done) => {
@@ -145,7 +145,7 @@ describe('Redis Writable Streams', () => {
       it('should flow as a duplex stream', () => {
         const log = stream.read()
 
-        expect(log).to.be.deep.equal({ event: event.args })
+        expect(log).to.be.deep.equal({ data: expectedData })
       })
 
       it('should decrease reputation of buyer', (done) => {

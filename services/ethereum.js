@@ -24,13 +24,13 @@ const processCreatedEvent = (event) => {
 
 const processWithdrawnEvent = (event) => {
   (new ethereumReadableStreams.SwapWithdrawn(web3, Withdraw, fromBlock))
-    .pipe(new redisWritableStreams.SwapWithdrawn({ redisClient, reputationName, reputationMultiplier: pointsIncrease }))
+    .pipe(new redisWritableStreams.SwapWithdrawn({ redisClient, swapName, reputationName, reputationMultiplier: pointsIncrease }))
     .pipe(new LogStream())
 }
 
 const processRefundedEvent = (event) => {
   (new ethereumReadableStreams.SwapRefunded(web3, Refund, fromBlock))
-    .pipe(new redisWritableStreams.SwapRefunded({ redisClient, reputationName, reputationMultiplier: pointsDecrease }))
+    .pipe(new redisWritableStreams.SwapRefunded({ redisClient, swapName, reputationName, reputationMultiplier: pointsDecrease }))
     .pipe(new LogStream())
 }
 

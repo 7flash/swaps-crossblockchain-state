@@ -2,59 +2,73 @@ const { Duplex } = require("stream")
 const { promisify } = require("util")
 const crypto = require("crypto")
 
-const parseEvent = (data) => {
-  const event = { ...data.args }
+const promisifyRedis = (redisClient) => ({
+  hset: promisify(redisClient.hset).bind(redisClient),
+  hmset: promisify(redisClient.hmset).bind(redisClient),
+  hget: promisify(redisClient.hget).bind(redisClient),
+  rpush: promisify(redisClient.rpush).bind(redisClient),
+  incrby: promisify(redisClient.INCRBY).bind(redisClient),
+  decrby: promisify(redisClient.DECRBY).bind(redisClient)
+})
 
-  for (let key in event) {
-    if (typeof event[key].toString === 'function')
-      event[key] = event[key].toString()
+const stringifyFields = (fields) => {
+  return Object.assign({}, ...Object.keys(fields).map((key) => ({
+    [key]: typeof fields[key].toString === 'function' ? fields[key].toString() : fields[key]
+  })))
+}
+
+const removeStartingUnderscore = (fields) => {
+  return Object.assign({}, ...Object.keys(fields).map((key) => {
+    const keyWithoutUnderscore = key.startsWith('_') ? key.slice(1) : key
+
+    return {
+      [keyWithoutUnderscore]: fields[key]
+    }
+  }))
+}
+
+const formattedEvent = (event) => {
+  const { args, transactionHash } = event
+  return {
+    ...removeStartingUnderscore(stringifyFields(args)),
+    transactionHash,
   }
-
-  event.buyer = event.buyer || event._buyer
-  event.seller = event.seller || event._seller
-  event.secretHash = event.secretHash || event._secretHash
-  event.value = event.value || event._value
-
-  return event
 }
 
 class SwapRefunded extends Duplex {
   constructor({ redisClient, swapName, reputationName, reputationMultiplier }) {
     super({ objectMode: true })
 
-    this.redisClient = redisClient
     this.swapName = swapName
     this.reputationName = reputationName
     this.reputationMultiplier = reputationMultiplier
-
-    this.hmset = promisify(this.redisClient.hmset).bind(this.redisClient)
-    this.decrby = promisify(this.redisClient.decrby).bind(this.redisClient)
+    this.redis = promisifyRedis(redisClient)
   }
 
-  saveEvent(event) {
-    return this.hmset(`${this.swapName}:${event.secretHash}:refund`, event)
+  async save(data) {
+    const { transactionHash, secretHash, buyer } = data
+
+    const existingHash = await this.redis.hget(`${this.swapName}:${secretHash}:refund`, 'secretHash')
+
+    if (existingHash)
+      throw new Error(`Refund transaction conflict, transaction: ${transactionHash}, secret hash: ${secretHash}`)
+
+    await this.redis.decrby(`${this.reputationName}:${buyer}`, 1 * this.reputationMultiplier)
+
+    await this.redis.hmset(`${this.swapName}:${secretHash}:refund`, data)
   }
 
-  updateReputation(event) {
-    const { buyer } = event
+  async _write(event, encoding, callback) {
+    const data = formattedEvent(event)
 
-    const decreaseBuyerReputation = this.decrby(`${this.reputationName}:${buyer}`, 1 * this.reputationMultiplier)
-
-    return decreaseBuyerReputation
-  }
-
-  _write(data, encoding, callback) {
-    const event = parseEvent(data)
-
-    this.saveEvent(event).then(() => {
-      return this.updateReputation(event)
-    }).then(() => {
-      this.push({ event })
-      callback()
-    }).catch((error) => {
+    try {
+      await this.save(data)
+      this.push({ data })
+    } catch (error) {
       this.push({ error })
+    } finally {
       callback()
-    })
+    }
   }
 
   _read() {}
@@ -64,40 +78,39 @@ class SwapWithdrawn extends Duplex {
   constructor({ redisClient, swapName, reputationName, reputationMultiplier }) {
     super({ objectMode: true })
 
-    this.redisClient = redisClient
     this.swapName = swapName
     this.reputationName = reputationName
     this.reputationMultiplier = reputationMultiplier
-
-    this.hmset = promisify(this.redisClient.hmset).bind(this.redisClient)
-    this.incrby = promisify(this.redisClient.INCRBY).bind(this.redisClient)
+    this.redis = promisifyRedis(redisClient)
   }
 
-  saveEvent(event) {
-    return this.hmset(`${this.swapName}:${event.secretHash}:withdraw`, event)
+  async save(data) {
+    const { transactionHash, secretHash, buyer, seller } = data
+
+    const existingHash = await this.redis.hget(`${this.swapName}:${secretHash}:withdraw`, 'secretHash')
+
+    if (existingHash)
+      throw new Error(`Withdraw transaction conflict, transaction: ${transactionHash}, secret hash: ${secretHash}`)
+
+    await this.redis.hmset(`${this.swapName}:${secretHash}:withdraw`, data)
+
+    const increaseBuyerReputation = this.redis.incrby(`${this.reputationName}:${buyer}`, 1 * this.reputationMultiplier)
+    const increaseSellerReputation = this.redis.incrby(`${this.reputationName}:${seller}`, 1 * this.reputationMultiplier)
+
+    await Promise.all([increaseBuyerReputation, increaseSellerReputation])
   }
 
-  updateReputation(event) {
-    const { buyer, seller } = event
+  async _write(event, encoding, callback) {
+    const data = formattedEvent(event)
 
-    const increaseBuyerReputation = this.incrby(`${this.reputationName}:${buyer}`, 1 * this.reputationMultiplier)
-    const increaseSellerReputation = this.incrby(`${this.reputationName}:${seller}`, 1 * this.reputationMultiplier)
-
-    return Promise.all([increaseBuyerReputation, increaseSellerReputation])
-  }
-
-  _write(data, encoding, callback) {
-    const event = parseEvent(data)
-
-    this.saveEvent(event).then(() => {
-      return this.updateReputation(event)
-    }).then(() => {
-      this.push({ event })
-      callback()
-    }).catch((error) => {
+    try {
+      await this.save(data)
+      this.push({ data })
+    } catch (error) {
       this.push({ error })
+    } finally {
       callback()
-    })
+    }
   }
 
   _read() {}
@@ -107,46 +120,37 @@ class SwapCreated extends Duplex {
   constructor({ redisClient, swapName }) {
     super({ objectMode: true })
 
-    this.redisClient = redisClient
     this.swapName = swapName
-
-    this.hmset = promisify(this.redisClient.hmset).bind(this.redisClient)
-    this.hget = promisify(this.redisClient.hget).bind(this.redisClient)
-    this.rpush = promisify(this.redisClient.rpush).bind(this.redisClient)
-
-    this.saveEvent = this.saveEvent.bind(this)
-    this.updateIndex = this.updateIndex.bind(this)
+    this.redis = promisifyRedis(redisClient)
   }
 
-  saveEvent(event) {
-    return this.hmset(`${this.swapName}:${event.secretHash}:deposit`, event)
+  async save(data) {
+    const { transactionHash, secretHash } = data
+
+    const existingHash = await this.redis.hget(`${this.swapName}:${secretHash}:deposit`, 'secretHash')
+
+    if (!secretHash)
+      throw new Error(`Create transaction invalid, secret hash: ${secretHash}`)
+
+    if (existingHash)
+      throw new Error(`Create transaction conflict, transaction: ${transactionHash}, secret hash: ${secretHash}`)
+
+    await this.redis.hmset(`${this.swapName}:${secretHash}:deposit`, data)
+
+    await this.redis.rpush(this.swapName, secretHash)
   }
 
-  updateIndex(event) {
-    if (!event.secretHash)
-      return Promise.reject('swap has no secretHash')
+  async _write(event, encoding, callback) {
+    const data = formattedEvent(event)
 
-    return this.hget(`${this.swapName}:${event.secretHash}:deposit`, 'secretHash').then((existingHash) => {
-      if (existingHash !== null)
-        throw new Error(`swap with hash equal to ${existingHash} already exists`)
-
-    }).then(() => {
-      return this.rpush(this.swapName, event.secretHash)
-    })
-  }
-
-  _write(data, encoding, callback) {
-    const event = parseEvent(data)
-
-    this.updateIndex(event).then(() => {
-      return this.saveEvent(event)
-    }).then(() => {
-      this.push({ event })
-      callback()
-    }).catch((error) => {
+    try {
+      await this.save(data)
+      this.push({ data })
+    } catch (error) {
       this.push({ error })
+    } finally {
       callback()
-    })
+    }
   }
 
   _read() {}
