@@ -51,8 +51,8 @@ class SwapsSearchStream extends Transform {
     assert.equal(script[13], 'OP_CHECKSIG')
     assert.equal(script[14], 'OP_ENDIF')
 
-    const seller = bitcoin.ECPair.fromPublicKeyBuffer(Buffer.from(ownerPublicKey, 'hex')).getAddress()
-    const buyer = bitcoin.ECPair.fromPublicKeyBuffer(Buffer.from(recipientPublicKey, 'hex')).getAddress()
+    const seller = bitcoin.ECPair.fromPublicKeyBuffer(Buffer.from(ownerPublicKey, 'hex'), this.network).getAddress()
+    const buyer = bitcoin.ECPair.fromPublicKeyBuffer(Buffer.from(recipientPublicKey, 'hex'), this.network).getAddress()
 
     const result = { buyer, seller, secret, secretHash, timeLock, signature }
 
